@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>醫用英語單字系統 - 強制載入版</title>
+    <title>醫用單字 - Alex 男聲強化版</title>
     <style>
         :root { --primary: #3498db; --bg: #2c3e50; --exam: #e67e22; }
         body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
@@ -16,18 +16,18 @@
         .hidden { visibility: hidden !important; }
         .btn-group { display: flex; gap: 8px; margin: 15px 0; justify-content: center; flex-wrap: wrap; }
         .btn { padding: 12px 18px; border-radius: 50px; border: none; background: var(--primary); color: white; cursor: pointer; font-weight: bold; }
-        .btn-speak { background: #2ecc71; font-size: 2.2em; width: 70px; height: 70px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .controls { display: flex; justify-content: center; align-items: center; gap: 15px; width: 100%; margin-top: 10px; }
-        .nav-btn { background: #7f8c8d; padding: 10px 15px; border-radius: 10px; color: white; border: none; font-weight: bold; flex: 1; }
+        .btn-speak { background: #2ecc71; font-size: 2.2em; width: 70px; height: 70px; border-radius: 50%; border: 4px solid white; }
         .btn-back { background: #e74c3c; width: 100%; margin-bottom: 15px; border-radius: 10px; }
-        #voice-status { text-align: center; font-size: 0.8em; margin-bottom: 15px; color: #f1c40f; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; cursor: pointer; }
+        #voice-status { text-align: center; font-size: 0.85em; margin-bottom: 15px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); }
+        .voice-ready { color: #2ecc71; border: 1px solid #2ecc71; }
+        .voice-wait { color: #f1c40f; border: 1px solid #f1c40f; }
     </style>
 </head>
-<body onclick="forceLoadVoices()">
+<body onclick="initVoice()">
 
 <div class="container" id="menu-screen">
-    <h1 style="text-align: center; margin-bottom: 5px;">🚑 醫用單字排程系統</h1>
-    <p id="voice-status">⚠️ 語音未就緒，請點擊畫面任何地方啟動</p>
+    <h1 style="text-align: center; margin-bottom: 5px;">🚑 醫用單字排程</h1>
+    <div id="voice-status" class="voice-wait">⚠️ 語音尚未就緒，請點擊螢幕任意處啟動</div>
     <div id="menu-items"></div>
 </div>
 
@@ -38,61 +38,65 @@
         <div class="word-en" id="q-en">EN</div>
         <div class="word-zh" id="q-zh">ZH</div>
     </div>
-    <div class="controls">
-        <button class="nav-btn" onclick="prev()">◀ 上一題</button>
+    <div class="controls" style="display:flex; align-items:center; gap:10px; width:100%;">
+        <button class="btn" style="flex:1; background:#7f8c8d;" onclick="prev()">◀</button>
         <button class="btn btn-speak" onclick="speak()">🔊</button>
-        <button class="btn" style="background:#9b59b6;" onclick="reveal()">看答案</button>
-        <button class="nav-btn" onclick="next()">下一題 ▶</button>
+        <button class="btn" style="flex:1; background:#9b59b6;" onclick="reveal()">看答案</button>
+        <button class="btn" style="flex:1; background:#7f8c8d;" onclick="next()">▶</button>
     </div>
     <p id="progress" style="text-align:center; margin-top:25px; color:#bdc3c7; font-weight:bold;"></p>
 </div>
 
 <script>
-    // 這裡放入單字資料 (由於篇幅，請保留您之前的 allWords 陣列)
+    // 單字資料庫 (314個)
     const allWords = [
         {en:"Abdominal pain",zh:"腹部疼痛"},{en:"Abdominal swelling",zh:"腹部腫脹"},{en:"AIDS",zh:"後天免疫缺乏症"},{en:"AGN",zh:"急性腎絲球腎炎"},{en:"ALL",zh:"急性淋巴白血病"},{en:"AMI",zh:"急性心肌梗塞"},{en:"AOM",zh:"急性中耳炎"},{en:"Acute pancreatitis",zh:"急性胰臟炎"},{en:"Acute Pulmonary edema",zh:"急性肺水腫"},{en:"APN",zh:"急性腎盂腎炎"},{en:"ARF",zh:"急性腎衰竭"},{en:"ARF",zh:"急性呼吸衰竭"},{en:"Addiction",zh:"藥癮"},{en:"Alcoholism",zh:"酒癮"},{en:"Amyloidosis",zh:"澱粉樣變性病"},
         {en:"Anemia",zh:"貧血"},{en:"Aneurysm",zh:"動脈瘤"},{en:"Angina",zh:"心絞痛"},{en:"Anorexia",zh:"食慾不振"},{en:"Anuria",zh:"無尿"},{en:"Aortic Dissection",zh:"主動脈剝離"},{en:"Aphasia",zh:"失語症"},{en:"Appendicitis",zh:"闌尾炎"},{en:"Arrhythmia",zh:"心律不整"},{en:"Ascites",zh:"腹水"},{en:"Asthma",zh:"氣喘"},{en:"Arthritis",zh:"關節炎"},{en:"Af",zh:"心房顫動"},{en:"AF",zh:"心房撲動"},{en:"AV-block",zh:"房室傳導阻滯"},
-        {en:"Basilar Artery Occlusion",zh:"基底動脈阻塞"},{en:"BPH",zh:"良性前列腺肥大"},{en:"BTI",zh:"膽道感染"},{en:"Biliary obstruction",zh:"膽道阻塞"},{en:"Bladder cancer",zh:"膀胱癌"},{en:"Bladder stone",zh:"膀胱結石"},{en:"Blood stool",zh:"血便"},{en:"BAT",zh:"腹部鈍傷"},{en:"Body weight loss",zh:"體重下降"},{en:"Brain stem stroke",zh:"腦幹中風"},{en:"Brain tumor",zh:"腦瘤"},{en:"Breast cancer",zh:"乳癌"},{en:"Bronchiectasis",zh:"支氣管擴張"},{en:"Bronchiolitis",zh:"細支氣管炎"},{en:"Bronchitis",zh:"支氣管炎"},
+        {en:"Basilar Artery Occlusion",zh:"基底動脈阻塞"},{en:"BPH",zh:"前列腺肥大"},{en:"BTI",zh:"膽道感染"},{en:"Biliary obstruction",zh:"膽道阻塞"},{en:"Bladder cancer",zh:"膀胱癌"},{en:"Bladder stone",zh:"膀胱結石"},{en:"Blood stool",zh:"血便"},{en:"BAT",zh:"腹部鈍傷"},{en:"Body weight loss",zh:"體重下降"},{en:"Brain stem stroke",zh:"腦幹中風"},{en:"Brain tumor",zh:"腦瘤"},{en:"Breast cancer",zh:"乳癌"},{en:"Bronchiectasis",zh:"支氣管擴張"},{en:"Bronchiolitis",zh:"細支氣管炎"},{en:"Bronchitis",zh:"支氣管炎"},
         {en:"Bronchopneumonia",zh:"支氣管肺炎"},{en:"Bronchospasm",zh:"支氣管痙攣"},{en:"BBB",zh:"束枝傳導阻滯"},{en:"Carcinoma",zh:"癌症"},{en:"Cardiac Arrest",zh:"心跳停止"},{en:"Cardiac Tamponade",zh:"心包膜填塞"},{en:"Cardiogenic Shock",zh:"心因性休克"},{en:"Cataract",zh:"白內障"},{en:"Cellulitis",zh:"蜂窩性組織炎"},{en:"Central Cord Syndrome",zh:"中樞脊髓症候群"},{en:"CVA",zh:"腦血管意外"},{en:"Cervical Cancer",zh:"子宮頸癌"},{en:"Chemical Burn",zh:"化學灼傷"},{en:"Chest pain",zh:"胸痛"},{en:"Chills",zh:"畏寒"},
         {en:"Cholecystitis",zh:"膽囊炎"},{en:"CGN",zh:"慢性腎絲球腎炎"},{en:"CRF",zh:"慢性腎衰竭"},{en:"COPD",zh:"慢性阻塞性肺病"},{en:"Clavicle Fracture",zh:"鎖骨骨折"},{en:"CO intoxication",zh:"一氧化碳中毒"},{en:"Colitis",zh:"結腸炎"},{en:"Coma",zh:"昏迷"},{en:"CBD stone",zh:"總膽管結石"},{en:"Compression Fracture",zh:"壓迫性骨折"},{en:"Congenital Heart Disease",zh:"先天性心臟病"},{en:"CHF",zh:"充血性心衰竭"},{en:"Consciousness disturbance",zh:"意識障礙"},{en:"Constipation",zh:"便秘"},{en:"Contusion",zh:"挫傷"},
         {en:"Convulsion",zh:"抽搐"},{en:"Corneal Ulceration",zh:"角膜潰瘍"},{en:"CAD",zh:"冠狀動脈疾病"},{en:"Cough",zh:"咳嗽"},{en:"Crushing injury",zh:"壓碎傷"},{en:"Cushing Syndrome",zh:"庫欣氏症候群"},{en:"Cyanosis",zh:"紺"},{en:"Cystitis",zh:"膀胱炎"},{en:"DOA",zh:"到院時死亡"},{en:"DVT",zh:"深部靜脈血栓"},{en:"Dehydration",zh:"脫水"},{en:"Delirium",zh:"譫妄"},{en:"Dermatitis",zh:"皮膚炎"},{en:"DI",zh:"尿崩症"},{en:"DKA",zh:"糖尿病酸中毒"},
-        {en:"DM",zh:"糖尿病"},{en:"Diabetic foot",zh:"糖尿病足"},{en:"DM poor control",zh:"糖尿病控制不良"},{en:"Diabetic Nephropathy",zh:"糖尿病腎病變"},{en:"Diabetic Neuropathy",zh:"神經病變"},{en:"Diabetic Retinopathy",zh:"糖尿病視網膜病變"},{en:"Diarrhea",zh:"腹瀉"},{en:"Dislocation",zh:"脫臼"},{en:"DIC",zh:"瀰漫血管內凝血"},{en:"Dizziness",zh:"頭暈"},{en:"Drug Intoxication",zh:"藥物中毒"},{en:"Duodenal Ulcer",zh:"十二指腸潰瘍"},{en:"DUB",zh:"子宮出血"},{en:"Dysmenorrhea",zh:"經痛"},{en:"Dysphagia",zh:"吞嚥困難"},
+        {en:"DM",zh:"糖尿病"},{en:"Diabetic foot",zh:"糖尿病足"},{en:"DM poor control",zh:"糖尿病控制不良"},{en:"Diabetic Nephropathy",zh:"糖尿病腎病變"},{en:"神經病變",zh:"Diabetic Neuropathy"},{en:"視網膜病變",zh:"Diabetic Retinopathy"},{en:"腹瀉",zh:"Diarrhea"},{en:"脫臼",zh:"Dislocation"},{en:"DIC",zh:"瀰漫血管內凝血"},{en:"頭暈",zh:"Dizziness"},{en:"藥物中毒",zh:"Drug Intoxication"},{en:"十二指腸潰瘍",zh:"Duodenal Ulcer"},{en:"DUB",zh:"功能不良子宮出血"},{en:"經痛",zh:"Dysmenorrhea"},{en:"吞嚥困難",zh:"Dysphagia"},
         {en:"Dyspnea",zh:"呼吸困難"},{en:"Ectopic Pregnancy",zh:"子宮外孕"},{en:"Edema",zh:"水腫"},{en:"Electrical Burns",zh:"電傷"},{en:"Electrolyte imbalance",zh:"電解質不平衡"},{en:"Emphysema",zh:"肺氣腫"},{en:"Empyema",zh:"膿胸"},{en:"Encephalitis",zh:"腦炎"},{en:"ESRD",zh:"末期腎臟病"},{en:"Endocarditis",zh:"心內膜炎"},{en:"Enteritis",zh:"腸炎"},{en:"EDH",zh:"硬腦膜外出血"},{en:"Epilepsy",zh:"癲癇"},{en:"Epistaxis",zh:"鼻出血"},{en:"Esophageal cancer",zh:"食道癌"},
         {en:"Eyeball Rupture",zh:"眼球破裂"},{en:"Fatty Liver",zh:"脂肪肝"},{en:"Febrile Convulsion",zh:"熱性痙攣"},{en:"Femoral Fracture",zh:"股骨骨折"},{en:"FUO",zh:"不明熱"},{en:"Fibular Fracture",zh:"腓骨骨折"},{en:"Flail Chest",zh:"連枷胸"},{en:"Flame Burn",zh:"火燒傷"},{en:"Foreign Body",zh:"異物"},{en:"Gall Stone",zh:"膽結石"},{en:"Gastric ulcer",zh:"胃潰瘍"},{en:"Gastritis",zh:"胃炎"},{en:"GI bleeding",zh:"腸胃道出血"},{en:"Glaucoma",zh:"青光眼"},{en:"Gout",zh:"痛風"},
         {en:"Gray stool",zh:"灰便"},{en:"Head injury",zh:"頭部外傷"},{en:"Headache",zh:"頭痛"},{en:"Heartburn",zh:"心口灼熱感"},{en:"Hematemesis",zh:"嘔血"},{en:"Hematoma",zh:"血腫"},{en:"Hematuria",zh:"血尿"},{en:"Hemiplegia",zh:"偏癱"},{en:"Hemoptysis",zh:"咳血"},{en:"Hemorrhoid",zh:"痔瘡"},{en:"Hemothorax",zh:"血胸"},{en:"Hepatic Coma",zh:"肝昏迷"},{en:"HE",zh:"肝性腦病變"},{en:"Hepatitis",zh:"肝炎"},{en:"Hepatoma",zh:"肝癌"},
         {en:"Hepatomegaly",zh:"肝腫大"},{en:"Hernia",zh:"疝氣"},{en:"HIVD",zh:"椎間盤突出"},{en:"Herpes Zoster",zh:"帶狀皰疹"},{en:"Hydrocephalus",zh:"水腦症"},{en:"Hydronephrosis",zh:"水腎"},{en:"Hypercalcemia",zh:"高血鈣"},{en:"Hyperglycemia",zh:"高血糖"},{en:"Hyperkalemia",zh:"高血鉀"},{en:"Hypernatremia",zh:"高血鈉"},{en:"HHNC",zh:"高滲透非酮性昏迷"},{en:"Hypertension",zh:"高血壓"},{en:"Hypertensive Crisis",zh:"高血壓危象"},{en:"Hyperthyroidism",zh:"甲狀腺亢進"},{en:"Hypocalcemia",zh:"低血鈣"},
-        {en:"Hypoglycemia",zh:"低血糖"},{en:"Hypokalemia",zh:"低血鉀"},{en:"Hyponatremia",zh:"低血鈉"},{en:"Hypotension",zh:"低血壓"},{en:"Hypothermia",zh:"低體溫"},{en:"Hypothyroidism",zh:"甲狀腺低下"},{en:"Hypovolemic Shock",zh:"低血容性休克"},{en:"Hypoxemia",zh:"低血氧症"},{en:"Hypoxic Encephalopathy",zh:"低氧腦病變"},{en:"Ileus",zh:"腸阻塞"},{en:"IICP",zh:"顱內壓升高"},{en:"Inhalation Burn",zh:"吸入性灼傷"},{en:"IDDM",zh:"胰島素依賴型"},{en:"Intestinal Obstruction",zh:"腸阻塞"},{en:"ICH",zh:"顱內出血"},
-        {en:"Intussusception",zh:"腸套疊"},{en:"IHD",zh:"缺血性心臟病"},{en:"Jaundice",zh:"黃疸"},{en:"Kussmaul Respiration",zh:"庫氏呼吸"},{en:"Laryngeal cancer",zh:"喉癌"},{en:"Laryngitis",zh:"喉炎"},{en:"Leukemia",zh:"白血病"},{en:"Lung cancer",zh:"肺癌"},{en:"LC",zh:"肝硬化"},{en:"Low back pain",zh:"下背痛"},{en:"LGI bleeding",zh:"下腸胃出血"},{en:"Maxillary Fracture",zh:"上頷骨骨折"},{en:"MCD",zh:"腎質囊腫"},{en:"Melena stool",zh:"黑色便"},{en:"Meningitis",zh:"腦膜炎"},
-        {en:"Metatarsal Fracture",zh:"掌骨骨折"},{en:"MCA infarction",zh:"中大腦動脈阻塞"},{en:"Multiple Myeloma",zh:"多發骨髓瘤"},{en:"Mumps",zh:"腮腺炎"},{en:"MG",zh:"重症肌無力"},{en:"NPC",zh:"鼻咽癌"},{en:"Nausea",zh:"噁心"},{en:"Nephrotic Syndrome",zh:"腎病症候群"},{en:"Neurogenic Shock",zh:"神經性休克"},{en:"Neuropathy",zh:"神經病變"},{en:"Neurosis",zh:"神經症"},{en:"NIDDM",zh:"非胰島素型"},{en:"Obesity",zh:"肥胖"},{en:"Oliguria",zh:"少尿"},{en:"Open Fracture",zh:"開放性骨折"},
-        {en:"Organophosphate",zh:"有機磷中毒"},{en:"Osteomyelitis",zh:"骨髓炎"},{en:"Otorrhea",zh:"耳漏"},{en:"Ovarian tumor",zh:"卵巢腫瘤"},{en:"Palpitation",zh:"心悸"},{en:"Pancreatic Head Cancer",zh:"胰頭癌"},{en:"Pancreatitis",zh:"胰臟炎"},{en:"Paraplegia",zh:"下半身麻痺"},{en:"Paraquat intoxication",zh:"巴拉刈中毒"},{en:"PSVT",zh:"陣發上心室過速"},{en:"Pelvic Fracture",zh:"骨盆骨折"},{en:"PID",zh:"骨盆腔發炎"},{en:"PPU",zh:"穿孔消化性潰瘍"},{en:"Pericardial effusion",zh:"心包膜積水"},{en:"Pericarditis",zh:"心包膜炎"},
-        {en:"Peritonitis",zh:"腹膜炎"},{en:"Pituitary tumor",zh:"腦下垂體腫瘤"},{en:"Pleural effusion",zh:"肋膜腔積水"},{en:"Pneumocranium",zh:"腦內積氣"},{en:"Pneumonia",zh:"肺炎"},{en:"Pneumothorax",zh:"氣胸"},{en:"PSGN",zh:"鏈球菌後腎絲球炎"},{en:"Postural Hypotension",zh:"姿勢性低血壓"},{en:"VPC",zh:"心室早期收縮"},{en:"Pressure sore",zh:"壓瘡"},{en:"Prostate cancer",zh:"前列腺癌"},{en:"Psychosis",zh:"精神病"},{en:"Pulmonary edema",zh:"肺水腫"},{en:"Pulmonary embolism",zh:"肺栓塞"},{en:"Pyuria",zh:"膿尿"},
+        {en:"Hypoglycemia",zh:"低血糖"},{en:"Hypokalemia",zh:"低血鉀"},{en:"Hyponatremia",zh:"低血鈉"},{en:"Hypotension",zh:"低血壓"},{en:"Hypothermia",zh:"低體溫"},{en:"Hypothyroidism",zh:"甲狀腺低下"},{en:"Hypovolemic Shock",zh:"低血容性休克"},{en:"Hypoxemia",zh:"低血氧症"},{en:"Hypoxic Encephalopathy",zh:"低氧腦病變"},{en:"Ileus",zh:"腸阻塞"},{en:"IICP",zh:"顱內壓升高"},{en:"Inhalation Burn",zh:"吸入性灼傷"},{en:"IDDM",zh:"胰島素依賴糖尿病"},{en:"Intestinal Obstruction",zh:"腸阻塞"},{en:"ICH",zh:"顱內出血"},
+        {en:"Intussusception",zh:"腸套疊"},{en:"IHD",zh:"缺血性心臟病"},{en:"Jaundice",zh:"黃疸"},{en:"Kussmaul Respiration",zh:"庫氏呼吸"},{en:"Laryngeal cancer",zh:"喉癌"},{en:"Laryngitis",zh:"喉炎"},{en:"Leukemia",zh:"白血病"},{en:"Lung cancer",zh:"肺癌"},{en:"LC",zh:"肝硬化"},{en:"Low back pain",zh:"下背痛"},{en:"LGI bleeding",zh:"下腸胃道出血"},{en:"Maxillary Fracture",zh:"上頷骨骨折"},{en:"MCD",zh:"腎質囊腫疾病"},{en:"Melena stool",zh:"黑色便"},{en:"Meningitis",zh:"腦膜炎"},
+        {en:"Metatarsal Fracture",zh:"掌骨骨折"},{en:"MCA infarction",zh:"中大腦動脈阻塞"},{en:"Multiple Myeloma",zh:"多發骨髓瘤"},{en:"Mumps",zh:"腮腺炎"},{en:"MG",zh:"重症肌無力"},{en:"NPC",zh:"鼻咽癌"},{en:"Nausea",zh:"噁心"},{en:"Nephrotic Syndrome",zh:"腎病症候群"},{en:"Neurogenic Shock",zh:"神經性休克"},{en:"Neuropathy",zh:"神經病變"},{en:"Neurosis",zh:"神經症"},{en:"NIDDM",zh:"非胰島素型糖尿病"},{en:"Obesity",zh:"肥胖"},{en:"Oliguria",zh:"少尿"},{en:"Open Fracture",zh:"開放性骨折"},
+        {en:"Organophosphate",zh:"有機磷中毒"},{en:"Osteomyelitis",zh:"骨髓炎"},{en:"Otorrhea",zh:"耳漏"},{en:"Ovarian tumor",zh:"卵巢腫瘤"},{en:"Palpitation",zh:"心悸"},{en:"Pancreatic Head Cancer",zh:"胰頭癌"},{en:"Pancreatitis",zh:"胰臟炎"},{en:"Paraplegia",zh:"下半身麻痺"},{en:"Paraquat intoxication",zh:"巴拉刈中毒"},{en:"PSVT",zh:"陣發上心室過速"},{en:"Pelvic Fracture",zh:"骨盆骨折"},{en:"PID",zh:"骨盆腔發炎"},{en:"PPU",zh:"穿孔消化性過量"},{en:"Pericardial effusion",zh:"心包膜積水"},{en:"Pericarditis",zh:"心包膜炎"},
+        {en:"Peritonitis",zh:"腹膜炎"},{en:"Pituitary tumor",zh:"腦下垂體腫瘤"},{en:"Pleural effusion",zh:"肋膜腔積水"},{en:"Pneumocranium",zh:"腦內積氣"},{en:"Pneumonia",zh:"肺炎"},{en:"Pneumothorax",zh:"氣胸"},{en:"PSGN",zh:"鏈球菌後腎絲球炎"},{en:"Postural Hypotension",zh:"姿勢性低血壓"},{en:"PVC",zh:"心室早期收縮"},{en:"Pressure sore",zh:"壓瘡"},{en:"Prostate cancer",zh:"前列腺癌"},{en:"Psychosis",zh:"精神病"},{en:"Pulmonary edema",zh:"肺水腫"},{en:"Pulmonary embolism",zh:"肺栓塞"},{en:"Pyuria",zh:"膿尿"},
         {en:"Radial Fracture",zh:"橈骨骨折"},{en:"Radial nerve injury",zh:"橈神經損傷"},{en:"RPGN",zh:"快速腎絲球炎"},{en:"Rectal cancer",zh:"直腸癌"},{en:"Regurgitation",zh:"反流"},{en:"Renal Failure",zh:"腎衰竭"},{en:"Renal insufficiency",zh:"腎功能不全"},{en:"Renal stone",zh:"腎結石"},{en:"RTA",zh:"腎小管酸血症"},{en:"RA",zh:"類風濕關節炎"},{en:"RHD",zh:"風溼性心臟病"},{en:"Rib Fracture",zh:"肋骨骨折"},{en:"Gouty Arthritis",zh:"痛風性關節炎"},{en:"Rupture of Bladder",zh:"膀胱破裂"},{en:"Schizophrenia",zh:"思覺失調"},{en:"Sciatica",zh:"坐骨神經痛"},
-        {en:"Sedation Overdose",zh:"鎮靜劑過量"},{en:"Seizure",zh:"抽搐"},{en:"Septic shock",zh:"敗血性休克"},{en:"Shoulder Dislocation",zh:"肩關節脫臼"},{en:"Sinus Bradycardia",zh:"竇性心緩"},{en:"Sinus Tachycardia",zh:"竇性心速"},{en:"Skull Fracture",zh:"顱骨骨折"},{en:"Smoke Inhalation",zh:"煙霧吸入"},{en:"Snake bite",zh:"蛇咬傷"},{en:"Spinal Cord injury",zh:"脊髓損傷"},{en:"Spleen rupture",zh:"脾臟破裂"},{en:"Spontaneous Pneumothorax",zh:"自發氣胸"},{en:"Sprain",zh:"扭傷"},{en:"Stabbing wound",zh:"穿刺傷"},{en:"Stool impaction",zh:"糞便嵌塞"},
-        {en:"Strain",zh:"拉傷"},{en:"SAH",zh:"蜘蛛膜下出血"},{en:"Subcutaneous emphysema",zh:"皮下氣腫"},{en:"SDH",zh:"硬腦膜下出血"},{en:"Suicide",zh:"自殺"},{en:"Syncope",zh:"暈厥"},{en:"SLE",zh:"紅斑性狼瘡"},{en:"Tarry stool",zh:"柏油樣便"},{en:"Tension Pneumothorax",zh:"張力性氣胸"},{en:"Tetanus",zh:"破傷風"},{en:"Thermal Burn",zh:"熱灼傷"},{en:"Thrombocytopenia",zh:"血小板減少"},{en:"Thrombophlebitis",zh:"血栓性靜脈炎"},{en:"Tibial fracture",zh:"脛骨骨折"},{en:"Tongue cancer",zh:"舌癌"},
+        {en:"Sedation Overdose",zh:"鎮靜劑過量"},{en:"Seizure",zh:"抽搐"},{en:"Septic shock",zh:"敗血性休克"},{en:"Shoulder Dislocation",zh:"肩關節脫臼"},{en:"Sinus Bradycardia",zh:"竇性心緩"},{en:"Sinus Tachycardia",zh:"竇性心速"},{en:"Skull Fracture",zh:"顱骨骨折"},{en:"Smoke Inhalation",zh:"煙霧吸入傷"},{en:"Snake bite",zh:"蛇咬傷"},{en:"Spinal Cord injury",zh:"脊髓損傷"},{en:"Spleen rupture",zh:"脾臟破裂"},{en:"Spontaneous Pneumothorax",zh:"自發氣胸"},{en:"Sprain",zh:"扭傷"},{en:"Stabbing wound",zh:"穿刺傷"},{en:"Stool impaction",zh:"糞便嵌塞"},
+        {en:"Strain",zh:"拉傷"},{en:"SAH",zh:"蜘蛛膜下出血"},{en:"Subcutaneous emphysema",zh:"皮下氣腫"},{en:"SDH",zh:"硬腦膜下出血"},{en:"Suicide",zh:"自殺"},{en:"Syncope",zh:"暈厥"},{en:"SLE",zh:"紅斑性狼瘡"},{en:"Tarry stool",zh:"柏油樣便"},{en:"Tension Pneumothorax",zh:"張力性氣胸"},{en:"Tetanus",zh:"破傷風"},{en:"Thermal Burn",zh:"熱灼傷"},{en:"Thrombocytopenia",zh:"血小板減少"},{en:"Thrombophlebitis",zh:"血栓靜脈炎"},{en:"Tibial fracture",zh:"脛骨骨折"},{en:"Tongue cancer",zh:"舌癌"},
         {en:"Tonsillitis",zh:"扁桃腺炎"},{en:"Tracheal Rupture",zh:"氣管破裂"},{en:"TA",zh:"交通事故"},{en:"TIA",zh:"短暫缺血發作"},{en:"Trauma",zh:"外傷"},{en:"TB",zh:"結核病"},{en:"Ulnar Fracture",zh:"尺骨骨折"},{en:"Ulnar nerve injury",zh:"尺神經受損"},{en:"Unstable Angina",zh:"不穩心絞痛"},{en:"UGI bleeding",zh:"上腸胃出血"},{en:"Uremia",zh:"尿毒症"},{en:"Ureter stone",zh:"輸尿管結石"},{en:"Urethral stone",zh:"尿道結石"},{en:"Urinary retention",zh:"尿儲留"},{en:"UTI",zh:"尿路感染"},
         {en:"Urolithiasis",zh:"尿路結石"},{en:"Urticaria",zh:"蕁麻疹"},{en:"Vaginal Bleeding",zh:"陰道出血"},{en:"Vaginitis",zh:"陰道炎"},{en:"Varicose Vein",zh:"靜脈曲張"},{en:"Vf",zh:"心室顫動"},{en:"VF",zh:"心室撲動"},{en:"VT",zh:"心室心搏過速"},{en:"Vertigo",zh:"眩暈"},{en:"Viral Infection",zh:"病毒感染"},{en:"Vomiting",zh:"嘔吐"},{en:"Wrist sprain",zh:"腕部扭傷"},{en:"Zygomatic Fracture",zh:"顴骨骨折"}
     ];
 
     let targetVoice = null;
 
-    function forceLoadVoices() {
+    function initVoice() {
+        const statusEl = document.getElementById('voice-status');
         const voices = window.speechSynthesis.getVoices();
+        
         if (voices.length > 0) {
-            // 優先找 Alex
-            targetVoice = voices.find(v => v.name.includes('Alex')) ||
-                          voices.find(v => v.lang.includes('en-US') && (v.name.includes('David') || v.name.includes('Male') || v.name.includes('Voice I')));
+            // 尋找 Alex (iOS) -> 如果沒有找 David 或其他美式男聲
+            targetVoice = voices.find(v => v.name === 'Alex' || v.name === 'Alex (Enhanced)') ||
+                          voices.find(v => v.lang.includes('en-US') && (v.name.includes('David') || v.name.includes('Male')));
             
             if (targetVoice) {
-                document.getElementById('voice-status').innerText = `✅ 語音就緒：${targetVoice.name}`;
-                document.getElementById('voice-status').style.color = "#2ecc71";
+                statusEl.innerText = `🎯 已鎖定男聲：${targetVoice.name}`;
+                statusEl.className = "voice-ready";
+            } else {
+                statusEl.innerText = `✅ 已就緒（使用系統預設聲音）`;
+                statusEl.className = "voice-ready";
             }
         }
     }
 
-    // 監聽
-    window.speechSynthesis.onvoiceschanged = forceLoadVoices;
-    
-    // 初始化選單與日期 (省略這部分邏輯，維持原樣)
+    // 某些手機需要點擊一下才能載入語音
+    window.speechSynthesis.onvoiceschanged = initVoice;
+
     function getDates() {
         let list = []; let d = new Date(2026, 2, 17);
         for(let i=0; i<Math.ceil(allWords.length/15); i++) {
@@ -101,6 +105,7 @@
         }
         return list;
     }
+
     const examDates = getDates();
     let batch = [], idx = 0, currentMode = '';
 
@@ -111,7 +116,7 @@
             div.className = 'menu-item';
             let end = Math.min((i+1)*15, allWords.length);
             div.innerHTML = `<b>${examDates[i]} 考試階段</b><br><small>單字：${i*15+1} - ${end}</small>`;
-            div.onclick = function() { showModes(i); };
+            div.onclick = function(e) { e.stopPropagation(); showModes(i); };
             container.appendChild(div);
         }
     }
@@ -122,18 +127,16 @@
         document.getElementById('mode-selector').innerHTML = `
             <button class="btn" onclick="start('learn', ${i})">學習模式</button>
             <button class="btn" onclick="start('recite', ${i})">背誦模式</button>
-            <button class="btn btn-exam" style="background:#e67e22;" onclick="start('exam', ${i})">考試模式(亂數聽力)</button>
+            <button class="btn" style="background:#e67e22;" onclick="start('exam', ${i})">考試模式</button>
         `;
     }
 
     function start(mode, i) {
         currentMode = mode;
         let endIdx = Math.min((i + 1) * 15, allWords.length);
-        if (mode === 'exam') {
-            batch = allWords.slice(0, endIdx).sort(() => Math.random() - 0.5);
-        } else {
-            batch = allWords.slice(i * 15, endIdx);
-        }
+        batch = (mode === 'exam') 
+            ? allWords.slice(0, endIdx).sort(() => Math.random() - 0.5)
+            : allWords.slice(i * 15, endIdx);
         idx = 0; updateUI();
         if (mode === 'exam') setTimeout(speak, 500);
     }
@@ -162,7 +165,7 @@
     
     function speak() { 
         window.speechSynthesis.cancel();
-        if (!targetVoice) forceLoadVoices(); // 如果還是沒抓到，嘗試再抓一次
+        if (!targetVoice) initVoice();
         const msg = new SpeechSynthesisUtterance(batch[idx].en);
         if (targetVoice) msg.voice = targetVoice;
         msg.lang = 'en-US';
