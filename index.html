@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>醫用英語 - 專屬男聲版</title>
+    <title>醫用英語 - AI 神經語音版</title>
     <style>
         :root { --primary: #3498db; --bg: #2c3e50; --accent: #2ecc71; }
         * { box-sizing: border-box; }
@@ -12,7 +12,7 @@
         
         .settings-panel { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); width: 100%; }
         select { 
-            width: 100%; margin: 10px 0 20px 0; padding: 12px 15px; border-radius: 10px; font-size: 16px; 
+            width: 100%; margin: 10px 0 20px 0; padding: 12px 15px; border-radius: 10px; font-size: 15px; 
             background: #ecf0f1; color: #2c3e50; border: none; outline: none;
             -webkit-appearance: none; appearance: none; 
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -41,12 +41,12 @@
     <h1 style="text-align: center; margin-bottom: 15px;">🚑 醫用單字排程</h1>
     
     <div class="settings-panel">
-        <label>🎤 選擇男聲發音 (推薦 Tom/Alex):</label>
+        <label>🎤 選擇男聲 (推薦 ✨ AI 神經語音):</label>
         <select id="voice-select" onchange="window.speechSynthesis.cancel()"></select>
         
         <label>⚡ 語速調整: <span id="rate-val">0.9</span>x</label>
         <input type="range" id="rate-range" min="0.3" max="1.5" step="0.1" value="0.9" oninput="document.getElementById('rate-val').innerText=this.value">
-        <p style="font-size: 0.75em; color: #f1c40f; text-align: center; margin: 10px 0 0;">* 若無聲請點擊螢幕任意處，並確認手機未開靜音 *</p>
+        <p style="font-size: 0.75em; color: #f1c40f; text-align: center; margin: 10px 0 0;">💡 提示：用 Edge 瀏覽器開啟可獲取最逼真 AI 語音</p>
     </div>
 
     <div id="menu-items"></div>
@@ -98,8 +98,8 @@
     let voices = [];
     const voiceSelect = document.getElementById('voice-select');
     
-    // 強制寫死：只允許這些常見的男聲出現在清單中
-    const maleNames = ["Tom", "Alex", "Fred", "Daniel", "James", "David", "Male", "Voice I", "Voice M"];
+    // 將 Edge 專屬的神經網路語音 (Natural/Online) 設為最高優先級
+    const maleNames = ["Natural", "Online", "Tom", "Alex", "Fred", "Daniel", "James", "David", "Male", "Voice I", "Voice M"];
 
     function initAudioContext() {
         if (voices.length === 0) {
@@ -114,16 +114,18 @@
         
         voiceSelect.innerHTML = '';
         
-        // 只留下男聲名單內的聲音，並且必須是英文
         const filtered = voices.filter(v => v.lang.includes('en') && maleNames.some(n => v.name.includes(n)));
         
-        // 優先排序 Tom 跟 Alex，且若是增強版排更前面
         filtered.sort((a, b) => {
+            const aIsNeural = a.name.includes('Natural') || a.name.includes('Online');
+            const bIsNeural = b.name.includes('Natural') || b.name.includes('Online');
             const aIsTop = a.name.includes('Tom') || a.name.includes('Alex');
             const bIsTop = b.name.includes('Tom') || b.name.includes('Alex');
             const aEnh = a.name.includes('Enhanced') || a.name.includes('Premium');
             const bEnh = b.name.includes('Enhanced') || b.name.includes('Premium');
             
+            if (aIsNeural && !bIsNeural) return -1;
+            if (!aIsNeural && bIsNeural) return 1;
             if (aIsTop && !bIsTop) return -1;
             if (!aIsTop && bIsTop) return 1;
             if (aEnh && !bEnh) return -1;
@@ -133,20 +135,19 @@
         
         filtered.forEach((v) => {
             const opt = document.createElement('option');
-            opt.value = v.name; // 關鍵修復：這裡存名字，不存容易錯亂的陣列索引
+            opt.value = v.name;
+            const isNeural = v.name.includes('Natural') || v.name.includes('Online');
             const isEnhanced = v.name.includes('Enhanced') || v.name.includes('Premium') || v.name === 'Alex';
-            opt.textContent = `${v.name} ♂️ ${isEnhanced ? '⭐' : ''}`;
+            opt.textContent = `${v.name} ♂️ ${isNeural ? '✨' : (isEnhanced ? '⭐' : '')}`;
             voiceSelect.appendChild(opt);
         });
 
-        // 如果手機真的連一個男聲都找不到，才給預設選項
         if (voiceSelect.options.length === 0) {
             const opt = document.createElement('option');
             opt.value = "default";
             opt.textContent = "系統預設 (可能為女聲)";
             voiceSelect.appendChild(opt);
         } else {
-            // 優先選擇清單中的第一個（通常是 Tom 增強版或 Alex）
             voiceSelect.selectedIndex = 0;
         }
     }
@@ -221,15 +222,13 @@
     function speak() { 
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance(batch[idx].en);
-        
-        // 關鍵修復：用你選單裡的名字，去陣列裡精準抓出對應的發音人
         const selectedVoiceName = voiceSelect.value;
         const selectedVoice = voices.find(v => v.name === selectedVoiceName);
         
         if (selectedVoice) {
             msg.voice = selectedVoice;
         } else {
-            msg.lang = 'en-US'; // 沒找到就預設美音
+            msg.lang = 'en-US';
         }
         
         msg.rate = document.getElementById('rate-range').value;
