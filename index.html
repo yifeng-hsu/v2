@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>醫用英語 - 全寫發音 & 男聲</title>
+    <title>醫用英語 - 四模式邏輯版</title>
     <style>
         :root { --primary: #3498db; --bg: #2c3e50; --accent: #2ecc71; }
         * { box-sizing: border-box; }
@@ -20,12 +20,15 @@
         .menu-item { background: white; color: #2c3e50; padding: 18px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; border-left: 6px solid var(--primary); font-size: 1.1em; }
         #app-screen { display: none; width: 100%; }
         
+        /* 使用 Grid 讓 4 個按鈕完美對齊 */
+        #mode-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; width: 100%; }
+        
         .card { background: white; color: #2c3e50; height: 260px; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; }
         .word-en { font-size: 1.55em; font-weight: bold; margin-bottom: 10px; min-height: 2.2em; display: flex; align-items: center; justify-content: center; word-break: break-word; line-height: 1.2; width: 100%; }
         .hidden { display: none !important; }
         
         .btn-speak { background: var(--accent); font-size: 2.2em; width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin: 15px 0; padding: 0; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .nav-btn { background: #7f8c8d; padding: 15px; border-radius: 10px; color: white; border: none; font-weight: bold; flex: 1; text-align: center; font-size: 1em; cursor: pointer; }
+        .nav-btn { background: #7f8c8d; padding: 15px; border-radius: 10px; color: white; border: none; font-weight: bold; width: 100%; text-align: center; font-size: 1em; cursor: pointer; }
         .btn-back { background: #e74c3c; width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 10px; color: white; border: none; font-size: 1.1em; font-weight: bold; cursor: pointer; }
     </style>
 </head>
@@ -46,7 +49,7 @@
 
 <div class="container" id="app-screen">
     <button class="btn-back" onclick="location.reload()">← 返回選單</button>
-    <div id="mode-selector" style="display:flex; gap:10px; margin-bottom:15px; width:100%;"></div>
+    <div id="mode-selector"></div>
     
     <div class="card" onclick="reveal()">
         <div class="word-en" id="q-en">EN</div>
@@ -133,7 +136,7 @@
         for(let i=0; i<examDates.length; i++) {
             let div = document.createElement('div');
             div.className = 'menu-item';
-            div.innerHTML = `<b>${examDates[i]} 階段範圍</b><br><small>累積單字：第 1 到 ${Math.min((i+1)*15, allWords.length)} 個</small>`;
+            div.innerHTML = `<b>${examDates[i]} 階段範圍</b><br><small>新增單字：${i*15+1} - ${Math.min((i+1)*15, allWords.length)}</small>`;
             div.onclick = (e) => { e.stopPropagation(); showMode(i); };
             container.appendChild(div);
         }
@@ -143,32 +146,44 @@
         document.getElementById('menu-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'block';
         document.getElementById('mode-selector').innerHTML = `
-            <button class="nav-btn" onclick="start('learn', ${i})">學習</button>
-            <button class="nav-btn" onclick="start('recite', ${i})">背誦</button>
-            <button class="nav-btn" style="background:#e67e22;" onclick="start('exam', ${i})">考試</button>
+            <button class="nav-btn" onclick="start('learn', ${i})">練習模式</button>
+            <button class="nav-btn" onclick="start('recite', ${i})">背誦模式</button>
+            <button class="nav-btn" onclick="start('random_recite', ${i})">亂數背誦</button>
+            <button class="nav-btn" style="background:#e67e22;" onclick="start('exam', ${i})">考試模式</button>
         `;
     }
 
     function start(mode, i) {
         currentMode = mode;
+        let startIdx = i * 15;
         let endIdx = Math.min((i + 1) * 15, allWords.length);
         
-        // 範圍為累進式，涵蓋第一階段到目前進度的所有單字
-        if (mode === 'exam') {
+        // 依照四種模式分派邏輯
+        if (mode === 'learn' || mode === 'recite') {
+            // 僅本次新增 15 個，照順序
+            batch = allWords.slice(startIdx, endIdx);
+        } else if (mode === 'random_recite') {
+            // 僅本次新增 15 個，亂數排列
+            batch = allWords.slice(startIdx, endIdx).sort(() => Math.random() - 0.5);
+        } else if (mode === 'exam') {
+            // 累積從第 1 個到本次範圍的所有單字，亂數排列
             batch = allWords.slice(0, endIdx).sort(() => Math.random() - 0.5);
-        } else {
-            batch = allWords.slice(0, endIdx);
         }
         
-        idx = 0; updateUI();
-        if (mode === 'exam') setTimeout(speak, 500);
+        idx = 0; 
+        updateUI();
+        
+        // 只有在非練習模式（背誦/考試）需要聽音辨字時，才自動發音
+        if (mode !== 'learn') setTimeout(speak, 500);
     }
 
     function updateUI() {
         window.speechSynthesis.cancel();
         document.getElementById('q-en').innerText = batch[idx].en;
         document.getElementById('q-zh').innerText = batch[idx].zh;
-        if (currentMode === 'exam' || currentMode === 'recite') {
+        
+        // 只要不是練習模式，一律先隱藏單字
+        if (currentMode !== 'learn') {
             document.getElementById('q-en').classList.add('hidden');
             document.getElementById('q-zh').classList.add('hidden');
         } else {
@@ -183,8 +198,17 @@
         document.getElementById('q-zh').classList.remove('hidden');
     }
 
-    function next() { idx = (idx+1)%batch.length; updateUI(); if(currentMode === 'exam') setTimeout(speak, 150); }
-    function prev() { idx = (idx-1+batch.length)%batch.length; updateUI(); }
+    function next() { 
+        idx = (idx+1)%batch.length; 
+        updateUI(); 
+        if(currentMode !== 'learn') setTimeout(speak, 150); 
+    }
+    
+    function prev() { 
+        idx = (idx-1+batch.length)%batch.length; 
+        updateUI(); 
+        if(currentMode !== 'learn') setTimeout(speak, 150);
+    }
     
     function speak() { 
         window.speechSynthesis.cancel();
