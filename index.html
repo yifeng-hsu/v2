@@ -3,25 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>醫用英語 - AI 神經語音版</title>
+    <title>醫用英語 - Alex 鎖定版</title>
     <style>
         :root { --primary: #3498db; --bg: #2c3e50; --accent: #2ecc71; }
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; touch-action: manipulation; }
         .container { width: 100%; max-width: 500px; }
         
-        .settings-panel { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); width: 100%; }
-        select { 
-            width: 100%; margin: 10px 0 20px 0; padding: 12px 15px; border-radius: 10px; font-size: 15px; 
-            background: #ecf0f1; color: #2c3e50; border: none; outline: none;
-            -webkit-appearance: none; appearance: none; 
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 15px center; background-size: 15px;
-        }
+        .settings-panel { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); width: 100%; text-align: center; }
         input[type="range"] { width: 100%; margin: 15px 0 5px 0; -webkit-appearance: none; background: transparent; }
         input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: #7f8c8d; border-radius: 5px; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 26px; width: 26px; border-radius: 50%; background: var(--accent); margin-top: -9px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         label { font-size: 0.95em; color: #bdc3c7; font-weight: bold; display: block; }
+        #voice-status { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; color: #f1c40f; }
         
         .menu-item { background: white; color: #2c3e50; padding: 18px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; border-left: 6px solid var(--primary); font-size: 1.1em; }
         #app-screen { display: none; width: 100%; }
@@ -41,12 +35,10 @@
     <h1 style="text-align: center; margin-bottom: 15px;">🚑 醫用單字排程</h1>
     
     <div class="settings-panel">
-        <label>🎤 選擇男聲 (推薦 ✨ AI 神經語音):</label>
-        <select id="voice-select" onchange="window.speechSynthesis.cancel()"></select>
-        
+        <div id="voice-status">🔍 點擊螢幕解鎖語音...</div>
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
         <label>⚡ 語速調整: <span id="rate-val">0.9</span>x</label>
         <input type="range" id="rate-range" min="0.3" max="1.5" step="0.1" value="0.9" oninput="document.getElementById('rate-val').innerText=this.value">
-        <p style="font-size: 0.75em; color: #f1c40f; text-align: center; margin: 10px 0 0;">💡 提示：用 Edge 瀏覽器開啟可獲取最逼真 AI 語音</p>
     </div>
 
     <div id="menu-items"></div>
@@ -95,60 +87,29 @@
         {en:"Urolithiasis",zh:"尿路結石"},{en:"Urticaria",zh:"蕁麻疹"},{en:"Vaginal Bleeding",zh:"陰道出血"},{en:"Vaginitis",zh:"陰道炎"},{en:"Varicose Vein",zh:"靜脈曲張"},{en:"Vf",zh:"心室顫動"},{en:"VF",zh:"心室撲動"},{en:"VT",zh:"心室心搏過速"},{en:"Vertigo",zh:"眩暈"},{en:"Viral Infection",zh:"病毒感染"},{en:"Vomiting",zh:"嘔吐"},{en:"Wrist sprain",zh:"腕部扭傷"},{en:"Zygomatic Fracture",zh:"顴骨骨折"}
     ];
 
-    let voices = [];
-    const voiceSelect = document.getElementById('voice-select');
-    
-    // 將 Edge 專屬的神經網路語音 (Natural/Online) 設為最高優先級
-    const maleNames = ["Natural", "Online", "Tom", "Alex", "Fred", "Daniel", "James", "David", "Male", "Voice I", "Voice M"];
+    let targetVoice = null;
 
     function initAudioContext() {
-        if (voices.length === 0) {
+        if (!targetVoice) {
             window.speechSynthesis.getVoices();
             loadVoices();
         }
     }
 
     function loadVoices() {
-        voices = window.speechSynthesis.getVoices();
+        const voices = window.speechSynthesis.getVoices();
         if (voices.length === 0) return;
         
-        voiceSelect.innerHTML = '';
-        
-        const filtered = voices.filter(v => v.lang.includes('en') && maleNames.some(n => v.name.includes(n)));
-        
-        filtered.sort((a, b) => {
-            const aIsNeural = a.name.includes('Natural') || a.name.includes('Online');
-            const bIsNeural = b.name.includes('Natural') || b.name.includes('Online');
-            const aIsTop = a.name.includes('Tom') || a.name.includes('Alex');
-            const bIsTop = b.name.includes('Tom') || b.name.includes('Alex');
-            const aEnh = a.name.includes('Enhanced') || a.name.includes('Premium');
-            const bEnh = b.name.includes('Enhanced') || b.name.includes('Premium');
-            
-            if (aIsNeural && !bIsNeural) return -1;
-            if (!aIsNeural && bIsNeural) return 1;
-            if (aIsTop && !bIsTop) return -1;
-            if (!aIsTop && bIsTop) return 1;
-            if (aEnh && !bEnh) return -1;
-            if (!aEnh && bEnh) return 1;
-            return 0;
-        });
-        
-        filtered.forEach((v) => {
-            const opt = document.createElement('option');
-            opt.value = v.name;
-            const isNeural = v.name.includes('Natural') || v.name.includes('Online');
-            const isEnhanced = v.name.includes('Enhanced') || v.name.includes('Premium') || v.name === 'Alex';
-            opt.textContent = `${v.name} ♂️ ${isNeural ? '✨' : (isEnhanced ? '⭐' : '')}`;
-            voiceSelect.appendChild(opt);
-        });
+        // 強制只找 Alex
+        targetVoice = voices.find(v => v.name === 'Alex' || v.name.includes('Alex'));
+        const statusEl = document.getElementById('voice-status');
 
-        if (voiceSelect.options.length === 0) {
-            const opt = document.createElement('option');
-            opt.value = "default";
-            opt.textContent = "系統預設 (可能為女聲)";
-            voiceSelect.appendChild(opt);
+        if (targetVoice) {
+            statusEl.innerText = "✅ 已強制鎖定男聲：Alex";
+            statusEl.style.color = "#2ecc71";
         } else {
-            voiceSelect.selectedIndex = 0;
+            statusEl.innerText = "⚠️ 找不到 Alex，將使用系統預設發音";
+            statusEl.style.color = "#e74c3c";
         }
     }
 
@@ -173,7 +134,7 @@
         for(let i=0; i<examDates.length; i++) {
             let div = document.createElement('div');
             div.className = 'menu-item';
-            div.innerHTML = `<b>${examDates[i]} 階段範圍</b><br><small>單字：${i*15+1} - ${Math.min((i+1)*15, allWords.length)}</small>`;
+            div.innerHTML = `<b>${examDates[i]} 階段範圍</b><br><small>累積單字：第 1 到 ${Math.min((i+1)*15, allWords.length)} 個</small>`;
             div.onclick = (e) => { e.stopPropagation(); showMode(i); };
             container.appendChild(div);
         }
@@ -192,7 +153,14 @@
     function start(mode, i) {
         currentMode = mode;
         let endIdx = Math.min((i + 1) * 15, allWords.length);
-        batch = (mode === 'exam') ? allWords.slice(0, endIdx).sort(() => Math.random() - 0.5) : allWords.slice(i * 15, endIdx);
+        
+        // 範圍改為累進式，涵蓋第一階段到目前進度的所有單字
+        if (mode === 'exam') {
+            batch = allWords.slice(0, endIdx).sort(() => Math.random() - 0.5);
+        } else {
+            batch = allWords.slice(0, endIdx);
+        }
+        
         idx = 0; updateUI();
         if (mode === 'exam') setTimeout(speak, 500);
     }
@@ -222,11 +190,9 @@
     function speak() { 
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance(batch[idx].en);
-        const selectedVoiceName = voiceSelect.value;
-        const selectedVoice = voices.find(v => v.name === selectedVoiceName);
         
-        if (selectedVoice) {
-            msg.voice = selectedVoice;
+        if (targetVoice) {
+            msg.voice = targetVoice;
         } else {
             msg.lang = 'en-US';
         }
