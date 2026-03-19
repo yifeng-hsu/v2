@@ -3,31 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>醫用英語 - iOS 穩定版</title>
+    <title>醫用英語 - 增強音質與UI優化版</title>
     <style>
         :root { --primary: #3498db; --bg: #2c3e50; --accent: #2ecc71; }
+        /* 加上 box-sizing 解決所有破圖與超出邊界的問題 */
+        * { box-sizing: border-box; }
+        
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; touch-action: manipulation; }
         .container { width: 100%; max-width: 500px; }
-        .settings-panel { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        select, input[type="range"] { width: 100%; margin: 10px 0; padding: 12px; border-radius: 8px; font-size: 16px; -webkit-appearance: none; background: #ecf0f1; }
-        .menu-item { background: white; color: #2c3e50; padding: 18px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; border-left: 6px solid var(--primary); }
+        
+        .settings-panel { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); width: 100%; }
+        
+        /* 重新設計下拉選單，解決 iOS 破圖 */
+        select { 
+            width: 100%; margin: 10px 0 20px 0; padding: 12px 15px; border-radius: 10px; font-size: 16px; 
+            background: #ecf0f1; color: #2c3e50; border: none; outline: none;
+            -webkit-appearance: none; appearance: none; 
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat; background-position: right 15px center; background-size: 15px;
+        }
+        
+        /* 重新設計拉桿，確保各版本 iOS 顯示正常 */
+        input[type="range"] { width: 100%; margin: 15px 0; -webkit-appearance: none; background: transparent; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: #7f8c8d; border-radius: 5px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 26px; width: 26px; border-radius: 50%; background: var(--accent); margin-top: -9px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        
+        label { font-size: 0.95em; color: #bdc3c7; font-weight: bold; display: block; }
+        
+        .menu-item { background: white; color: #2c3e50; padding: 18px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; border-left: 6px solid var(--primary); font-size: 1.1em; }
         #app-screen { display: none; width: 100%; }
-        .card { background: white; color: #2c3e50; height: 260px; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        
+        .card { background: white; color: #2c3e50; height: 260px; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; }
         .word-en { font-size: 1.8em; font-weight: bold; margin-bottom: 10px; }
         .hidden { display: none !important; }
-        .btn-speak { background: var(--accent); font-size: 2.2em; width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin: 15px 0; }
-        .nav-btn { background: #7f8c8d; padding: 15px; border-radius: 10px; color: white; border: none; font-weight: bold; flex: 1; }
-        .btn-back { background: #e74c3c; width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 10px; color: white; border: none; }
-        label { font-size: 0.9em; color: #bdc3c7; }
+        
+        .btn-speak { background: var(--accent); font-size: 2.2em; width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin: 15px 0; padding: 0; display: flex; justify-content: center; align-items: center; }
+        .nav-btn { background: #7f8c8d; padding: 15px; border-radius: 10px; color: white; border: none; font-weight: bold; flex: 1; text-align: center; font-size: 1em; }
+        .btn-back { background: #e74c3c; width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 10px; color: white; border: none; font-size: 1.1em; font-weight: bold; }
     </style>
 </head>
 <body onpointerdown="initAudioContext()">
 
 <div class="container" id="menu-screen">
-    <h1 style="text-align: center; margin-bottom: 10px;">🚑 醫用單字排程</h1>
+    <h1 style="text-align: center; margin-bottom: 15px;">🚑 醫用單字排程</h1>
     
     <div class="settings-panel">
-        <label>🎤 選擇美式發音 (推薦 Alex):</label>
+        <label>🎤 選擇發音 (優先載入增強版):</label>
         <select id="voice-select" onchange="window.speechSynthesis.cancel()"></select>
         
         <label>⚡ 語速調整: <span id="rate-val">0.9</span>x</label>
@@ -39,14 +60,14 @@
 
 <div class="container" id="app-screen">
     <button class="btn-back" onclick="location.reload()">← 返回選單</button>
-    <div id="mode-selector" style="display:flex; gap:10px; margin-bottom:15px;"></div>
+    <div id="mode-selector" style="display:flex; gap:10px; margin-bottom:15px; width:100%;"></div>
     
     <div class="card" onclick="reveal()">
         <div class="word-en" id="q-en">EN</div>
         <div class="word-zh" style="font-size:1.4em; color:#34495e;" id="q-zh">ZH</div>
     </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:10px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:15px; margin-top:10px;">
         <button class="nav-btn" onclick="prev()">◀</button>
         <button class="btn-speak" onclick="speak()">🔊</button>
         <button class="nav-btn" onclick="next()">▶</button>
@@ -56,7 +77,6 @@
 </div>
 
 <script>
-    // 單字資料區 (314個完整列表)
     const allWords = [
         {en:"Abdominal pain",zh:"腹部疼痛"},{en:"Abdominal swelling",zh:"腹部腫脹"},{en:"AIDS",zh:"後天免疫缺乏症"},{en:"AGN",zh:"急性腎絲球腎炎"},{en:"ALL",zh:"急性淋巴白血病"},{en:"AMI",zh:"急性心肌梗塞"},{en:"AOM",zh:"急性中耳炎"},{en:"Acute pancreatitis",zh:"急性胰臟炎"},{en:"Acute Pulmonary edema",zh:"急性肺水腫"},{en:"APN",zh:"急性腎盂腎炎"},{en:"ARF",zh:"急性腎衰竭"},{en:"ARF",zh:"急性呼吸衰竭"},{en:"Addiction",zh:"藥癮"},{en:"Alcoholism",zh:"酒癮"},{en:"Amyloidosis",zh:"澱粉樣變性"},
         {en:"Anemia",zh:"貧血"},{en:"Aneurysm",zh:"動脈瘤"},{en:"Angina",zh:"心絞痛"},{en:"Anorexia",zh:"食慾不振"},{en:"Anuria",zh:"無尿"},{en:"Aortic Dissection",zh:"主動脈剝離"},{en:"Aphasia",zh:"失語症"},{en:"Appendicitis",zh:"闌尾炎"},{en:"Arrhythmia",zh:"心律不整"},{en:"Ascites",zh:"腹水"},{en:"Asthma",zh:"氣喘"},{en:"Arthritis",zh:"關節炎"},{en:"Af",zh:"心房顫動"},{en:"AF",zh:"心房撲動"},{en:"AV-block",zh:"房室傳導阻滯"},
@@ -74,21 +94,21 @@
         {en:"Metatarsal Fracture",zh:"掌骨骨折"},{en:"MCA infarction",zh:"中大腦動脈阻塞"},{en:"Multiple Myeloma",zh:"多發骨髓瘤"},{en:"Mumps",zh:"腮腺炎"},{en:"MG",zh:"重症肌無力"},{en:"NPC",zh:"鼻咽癌"},{en:"Nausea",zh:"噁心"},{en:"Nephrotic Syndrome",zh:"腎病症候群"},{en:"Neurogenic Shock",zh:"神經性休克"},{en:"Neuropathy",zh:"神經病變"},{en:"Neurosis",zh:"神經症"},{en:"NIDDM",zh:"非胰島素型"},{en:"Obesity",zh:"肥胖"},{en:"Oliguria",zh:"少尿"},{en:"Open Fracture",zh:"開放性骨折"},
         {en:"Organophosphate",zh:"有機磷中毒"},{en:"Osteomyelitis",zh:"骨髓炎"},{en:"Otorrhea",zh:"耳漏"},{en:"Ovarian tumor",zh:"卵巢腫瘤"},{en:"Palpitation",zh:"心悸"},{en:"Pancreatic Head Cancer",zh:"胰頭癌"},{en:"Pancreatitis",zh:"胰臟炎"},{en:"Paraplegia",zh:"下半身麻痺"},{en:"Paraquat intoxication",zh:"巴拉刈中毒"},{en:"PSVT",zh:"陣發上心室過速"},{en:"Pelvic Fracture",zh:"骨盆骨折"},{en:"PID",zh:"骨盆腔發炎"},{en:"PPU",zh:"穿孔消化性過量"},{en:"Pericardial effusion",zh:"心包膜積水"},{en:"Pericarditis",zh:"心包膜炎"},
         {en:"Peritonitis",zh:"腹膜炎"},{en:"Pituitary tumor",zh:"腦下垂體腫瘤"},{en:"Pleural effusion",zh:"肋膜腔積水"},{en:"Pneumocranium",zh:"腦內積氣"},{en:"Pneumonia",zh:"肺炎"},{en:"Pneumothorax",zh:"氣胸"},{en:"PSGN",zh:"鏈球菌後腎絲球炎"},{en:"Postural Hypotension",zh:"姿勢性低血壓"},{en:"VPC",zh:"心室早期收縮"},{en:"Pressure sore",zh:"壓瘡"},{en:"Prostate cancer",zh:"前列腺癌"},{en:"Psychosis",zh:"精神病"},{en:"Pulmonary edema",zh:"肺水腫"},{en:"Pulmonary embolism",zh:"肺栓塞"},{en:"Pyuria",zh:"膿尿"},
-        {en:"Radial Fracture",zh:"橈骨骨折"},{en:"Radial nerve injury",zh:"橈神經損傷"},{en:"RPGN",zh:"快速腎絲球炎"},{en:"Rectal cancer",zh:"直腸癌"},{en:"Regurgitation",zh:"反流"},{en:"Renal Failure",zh:"腎衰竭"},{en:"Renal insufficiency",zh:"腎功能不全"},{en:"Renal stone",zh:"腎結石"},{en:"RTA",zh:"腎小管酸血症"},{en:"RA",zh:"類風濕關節炎"},{en:"RHD",zh:"風溼性心臟病"},{en:"Rib Fracture",zh:"肋骨骨折"},{en:"Gouty Arthritis",zh:"痛風性關節炎"},{en:"Rupture of Bladder",zh:"膀胱破裂"},{en:"Schizophrenia",zh:"思覺失調症"},{en:"Sciatica",zh:"坐骨神經痛"},
-        {en:"Sedation Overdose",zh:"鎮靜劑過量"},{en:"Seizure",zh:"抽搐"},{en:"Septic shock",zh:"敗血性休克"},{en:"Shoulder Dislocation",zh:"肩關節脫臼"},{en:"Sinus Bradycardia",zh:"竇性心緩"},{en:"Sinus Tachycardia",zh:"竇性心速"},{en:"Skull Fracture",zh:"顱骨骨折"},{en:"Smoke Inhalation",zh:"煙霧吸入傷害"},{en:"Snake bite",zh:"蛇咬傷"},{en:"Spinal Cord injury",zh:"脊髓損傷"},{en:"Spleen rupture",zh:"脾臟破裂"},{en:"Spontaneous Pneumothorax",zh:"自發氣胸"},{en:"Sprain",zh:"扭傷"},{en:"Stabbing wound",zh:"穿刺傷"},{en:"Stool impaction",zh:"糞便嵌塞"},
-        {en:"Strain",zh:"拉傷"},{en:"SAH",zh:"蜘蛛膜下出血"},{en:"Subcutaneous emphysema",zh:"皮下氣腫"},{en:"SDH",zh:"硬腦膜下出血"},{en:"Suicide",zh:"自殺"},{en:"Syncope",zh:"暈厥"},{en:"SLE",zh:"紅斑性狼瘡"},{en:"Tarry stool",zh:"柏油樣便"},{en:"Tension Pneumothorax",zh:"張力性氣胸"},{en:"Tetanus",zh:"破傷風"},{en:"Thermal Burn",zh:"熱灼傷"},{en:"Thrombocytopenia",zh:"血小板減少"},{en:"Thrombophlebitis",zh:"血栓性靜脈炎"},{en:"Tibial fracture",zh:"脛骨骨折"},{en:"Tongue cancer",zh:"舌癌"},
+        {en:"Radial Fracture",zh:"橈骨骨折"},{en:"Radial nerve injury",zh:"橈神經損傷"},{en:"RPGN",zh:"快速腎絲球炎"},{en:"Rectal cancer",zh:"直腸癌"},{en:"Regurgitation",zh:"反流"},{en:"Renal Failure",zh:"腎衰竭"},{en:"Renal insufficiency",zh:"腎功能不全"},{en:"Renal stone",zh:"腎結石"},{en:"RTA",zh:"腎小管酸血症"},{en:"RA",zh:"類風濕關節炎"},{en:"RHD",zh:"風溼性心臟病"},{en:"Rib Fracture",zh:"肋骨骨折"},{en:"Gouty Arthritis",zh:"痛風性關節炎"},{en:"Rupture of Bladder",zh:"膀胱破裂"},{en:"Schizophrenia",zh:"思覺失調"},{en:"Sciatica",zh:"坐骨神經痛"},
+        {en:"Sedation Overdose",zh:"鎮靜劑過量"},{en:"Seizure",zh:"抽搐"},{en:"Septic shock",zh:"敗血性休克"},{en:"Shoulder Dislocation",zh:"肩關節脫臼"},{en:"Sinus Bradycardia",zh:"竇性心緩"},{en:"Sinus Tachycardia",zh:"竇性心速"},{en:"Skull Fracture",zh:"顱骨骨折"},{en:"Smoke Inhalation",zh:"煙霧吸入傷"},{en:"Snake bite",zh:"蛇咬傷"},{en:"Spinal Cord injury",zh:"脊髓損傷"},{en:"Spleen rupture",zh:"脾臟破裂"},{en:"Spontaneous Pneumothorax",zh:"自發氣胸"},{en:"Sprain",zh:"扭傷"},{en:"Stabbing wound",zh:"穿刺傷"},{en:"Stool impaction",zh:"糞便嵌塞"},
+        {en:"Strain",zh:"拉傷"},{en:"SAH",zh:"蜘蛛膜下出血"},{en:"Subcutaneous emphysema",zh:"皮下氣腫"},{en:"SDH",zh:"硬腦膜下出血"},{en:"Suicide",zh:"自殺"},{en:"Syncope",zh:"暈厥"},{en:"SLE",zh:"紅斑性狼瘡"},{en:"Tarry stool",zh:"柏油樣便"},{en:"Tension Pneumothorax",zh:"張力性氣胸"},{en:"Tetanus",zh:"破傷風"},{en:"Thermal Burn",zh:"熱灼傷"},{en:"Thrombocytopenia",zh:"血小板減少"},{en:"Thrombophlebitis",zh:"血栓靜脈炎"},{en:"Tibial fracture",zh:"脛骨骨折"},{en:"Tongue cancer",zh:"舌癌"},
         {en:"Tonsillitis",zh:"扁桃腺炎"},{en:"Tracheal Rupture",zh:"氣管破裂"},{en:"TA",zh:"交通事故"},{en:"TIA",zh:"短暫缺血發作"},{en:"Trauma",zh:"外傷"},{en:"TB",zh:"結核病"},{en:"Ulnar Fracture",zh:"尺骨骨折"},{en:"Ulnar nerve injury",zh:"尺神經受損"},{en:"Unstable Angina",zh:"不穩心絞痛"},{en:"UGI bleeding",zh:"上腸胃道出血"},{en:"Uremia",zh:"尿毒症"},{en:"Ureter stone",zh:"輸尿管結石"},{en:"Urethral stone",zh:"尿道結石"},{en:"Urinary retention",zh:"尿儲留"},{en:"UTI",zh:"尿路感染"},
         {en:"Urolithiasis",zh:"尿路結石"},{en:"Urticaria",zh:"蕁麻疹"},{en:"Vaginal Bleeding",zh:"陰道出血"},{en:"Vaginitis",zh:"陰道炎"},{en:"Varicose Vein",zh:"靜脈曲張"},{en:"Vf",zh:"心室顫動"},{en:"VF",zh:"心室撲動"},{en:"VT",zh:"心室心搏過速"},{en:"Vertigo",zh:"眩暈"},{en:"Viral Infection",zh:"病毒感染"},{en:"Vomiting",zh:"嘔吐"},{en:"Wrist sprain",zh:"腕部扭傷"},{en:"Zygomatic Fracture",zh:"顴骨骨折"}
     ];
 
     let voices = [];
     const voiceSelect = document.getElementById('voice-select');
-    const coreNames = ["Alex", "Samantha", "Fred", "Victoria", "Daniel"];
+    // 加入 Tom，涵蓋最優質的 iOS 美語發音人
+    const coreNames = ["Alex", "Tom", "Samantha", "Fred", "Victoria", "Daniel"];
 
-    // 關鍵修復：初次點擊「任何地方」都要解鎖音軌
     function initAudioContext() {
         if (voices.length === 0) {
-            window.speechSynthesis.getVoices(); // 強迫載入
+            window.speechSynthesis.getVoices();
             loadVoices();
         }
     }
@@ -98,20 +118,31 @@
         if (voices.length === 0) return;
         
         voiceSelect.innerHTML = '';
-        // 篩選核心美音
+        
+        // 篩選出核心名單
         const filtered = voices.filter(v => coreNames.some(n => v.name.includes(n)));
+        
+        // 排序：將含有 "Enhanced" 或 "Premium" 或 "Alex" 排在最前面
+        filtered.sort((a, b) => {
+            const aEnh = a.name.includes('Enhanced') || a.name.includes('Premium') || a.name === 'Alex';
+            const bEnh = b.name.includes('Enhanced') || b.name.includes('Premium') || b.name === 'Alex';
+            return (aEnh === bEnh) ? 0 : aEnh ? -1 : 1;
+        });
         
         filtered.forEach((v) => {
             const opt = document.createElement('option');
             opt.value = v.name;
-            const isMale = v.name.includes('Alex') || v.name.includes('Daniel') || v.name.includes('Fred');
-            opt.textContent = `${v.name} ${isMale ? '♂️' : '♀️'}`;
-            if (v.name === 'Alex') opt.selected = true;
+            const isMale = v.name.includes('Alex') || v.name.includes('Daniel') || v.name.includes('Fred') || v.name.includes('Tom');
+            const isEnhanced = v.name.includes('Enhanced') || v.name.includes('Premium') || v.name === 'Alex';
+            
+            opt.textContent = `${v.name} ${isMale ? '♂️' : '♀️'} ${isEnhanced ? '⭐' : ''}`;
+            
+            // 預設選擇 Alex 或首個增強版
+            if (v.name === 'Alex' || v.name.includes('Tom (Enhanced)')) opt.selected = true;
             voiceSelect.appendChild(opt);
         });
     }
 
-    // iOS 異步監聽
     if (speechSynthesis.onvoiceschanged !== undefined) {
         speechSynthesis.onvoiceschanged = loadVoices;
     }
@@ -158,7 +189,7 @@
     }
 
     function updateUI() {
-        window.speechSynthesis.cancel(); // 物理清空舊排程
+        window.speechSynthesis.cancel();
         document.getElementById('q-en').innerText = batch[idx].en;
         document.getElementById('q-zh').innerText = batch[idx].zh;
         if (currentMode === 'exam' || currentMode === 'recite') {
@@ -180,13 +211,10 @@
     function prev() { idx = (idx-1+batch.length)%batch.length; updateUI(); }
     
     function speak() { 
-        window.speechSynthesis.cancel(); // 確保立即停止前一個聲音
+        window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance(batch[idx].en);
-        
-        // 依照選單名字搜尋聲音物件
         const selectedVoice = voices.find(v => v.name === voiceSelect.value);
         if (selectedVoice) msg.voice = selectedVoice;
-        
         msg.rate = document.getElementById('rate-range').value;
         window.speechSynthesis.speak(msg); 
     }
