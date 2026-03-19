@@ -2,37 +2,36 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>醫用單字學習系統 - 精簡美音版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>醫用英語 - iOS 穩定版</title>
     <style>
         :root { --primary: #3498db; --bg: #2c3e50; --accent: #2ecc71; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; touch-action: manipulation; }
         .container { width: 100%; max-width: 500px; }
-        .settings-panel { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        select, input[type="range"] { width: 100%; margin: 10px 0; padding: 12px; border-radius: 8px; font-size: 16px; }
-        .menu-item { background: white; color: #2c3e50; padding: 15px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; border-left: 6px solid var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .settings-panel { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        select, input[type="range"] { width: 100%; margin: 10px 0; padding: 12px; border-radius: 8px; font-size: 16px; -webkit-appearance: none; background: #ecf0f1; }
+        .menu-item { background: white; color: #2c3e50; padding: 18px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; border-left: 6px solid var(--primary); }
         #app-screen { display: none; width: 100%; }
-        .card { background: white; color: #2c3e50; height: 260px; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; }
-        .word-en { font-size: 1.8em; font-weight: bold; margin-bottom: 10px; min-height: 2.2em; display: flex; align-items: center; }
-        .hidden { visibility: hidden !important; }
-        .btn-speak { background: var(--accent); font-size: 2.2em; width: 75px; height: 75px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin: 15px 0; cursor: pointer; }
-        .nav-btn { background: #7f8c8d; padding: 12px; border-radius: 10px; color: white; border: none; font-weight: bold; flex: 1; cursor: pointer; }
-        .btn-back { background: #e74c3c; width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 10px; color: white; border: none; cursor: pointer; }
+        .card { background: white; color: #2c3e50; height: 260px; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .word-en { font-size: 1.8em; font-weight: bold; margin-bottom: 10px; }
+        .hidden { display: none !important; }
+        .btn-speak { background: var(--accent); font-size: 2.2em; width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin: 15px 0; }
+        .nav-btn { background: #7f8c8d; padding: 15px; border-radius: 10px; color: white; border: none; font-weight: bold; flex: 1; }
+        .btn-back { background: #e74c3c; width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 10px; color: white; border: none; }
         label { font-size: 0.9em; color: #bdc3c7; }
     </style>
 </head>
-<body onclick="activateSpeech()">
+<body onpointerdown="initAudioContext()">
 
 <div class="container" id="menu-screen">
     <h1 style="text-align: center; margin-bottom: 10px;">🚑 醫用單字排程</h1>
     
     <div class="settings-panel">
         <label>🎤 選擇美式發音 (推薦 Alex):</label>
-        <select id="voice-select"></select>
+        <select id="voice-select" onchange="window.speechSynthesis.cancel()"></select>
         
         <label>⚡ 語速調整: <span id="rate-val">0.9</span>x</label>
         <input type="range" id="rate-range" min="0.3" max="1.5" step="0.1" value="0.9" oninput="document.getElementById('rate-val').innerText=this.value">
-        <p style="font-size: 0.75em; color: #f1c40f; text-align: center; margin: 5px 0 0;">* 若無聲請點擊螢幕任意處啟動 *</p>
     </div>
 
     <div id="menu-items"></div>
@@ -48,15 +47,16 @@
     </div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:10px;">
-        <button class="nav-btn" onclick="prev()">◀ 上一題</button>
+        <button class="nav-btn" onclick="prev()">◀</button>
         <button class="btn-speak" onclick="speak()">🔊</button>
-        <button class="nav-btn" onclick="next()">下一題 ▶</button>
+        <button class="nav-btn" onclick="next()">▶</button>
     </div>
-    <button class="nav-btn" style="background:#9b59b6; width:100%; margin-top:10px;" onclick="reveal()">👁️ 查看答案</button>
-    <p id="progress" style="text-align:center; margin-top:15px; color:#bdc3c7; font-weight:bold;"></p>
+    <button class="nav-btn" style="background:#9b59b6; width:100%; margin-top:15px;" onclick="reveal()">👁️ 查看答案</button>
+    <p id="progress" style="text-align:center; margin-top:20px; color:#bdc3c7; font-weight:bold;"></p>
 </div>
 
 <script>
+    // 單字資料區 (314個完整列表)
     const allWords = [
         {en:"Abdominal pain",zh:"腹部疼痛"},{en:"Abdominal swelling",zh:"腹部腫脹"},{en:"AIDS",zh:"後天免疫缺乏症"},{en:"AGN",zh:"急性腎絲球腎炎"},{en:"ALL",zh:"急性淋巴白血病"},{en:"AMI",zh:"急性心肌梗塞"},{en:"AOM",zh:"急性中耳炎"},{en:"Acute pancreatitis",zh:"急性胰臟炎"},{en:"Acute Pulmonary edema",zh:"急性肺水腫"},{en:"APN",zh:"急性腎盂腎炎"},{en:"ARF",zh:"急性腎衰竭"},{en:"ARF",zh:"急性呼吸衰竭"},{en:"Addiction",zh:"藥癮"},{en:"Alcoholism",zh:"酒癮"},{en:"Amyloidosis",zh:"澱粉樣變性"},
         {en:"Anemia",zh:"貧血"},{en:"Aneurysm",zh:"動脈瘤"},{en:"Angina",zh:"心絞痛"},{en:"Anorexia",zh:"食慾不振"},{en:"Anuria",zh:"無尿"},{en:"Aortic Dissection",zh:"主動脈剝離"},{en:"Aphasia",zh:"失語症"},{en:"Appendicitis",zh:"闌尾炎"},{en:"Arrhythmia",zh:"心律不整"},{en:"Ascites",zh:"腹水"},{en:"Asthma",zh:"氣喘"},{en:"Arthritis",zh:"關節炎"},{en:"Af",zh:"心房顫動"},{en:"AF",zh:"心房撲動"},{en:"AV-block",zh:"房室傳導阻滯"},
@@ -83,13 +83,14 @@
 
     let voices = [];
     const voiceSelect = document.getElementById('voice-select');
-    // 指定 iOS 全版本通用的 5 個核心美音清單
     const coreNames = ["Alex", "Samantha", "Fred", "Victoria", "Daniel"];
 
-    function activateSpeech() {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
-        loadVoices();
+    // 關鍵修復：初次點擊「任何地方」都要解鎖音軌
+    function initAudioContext() {
+        if (voices.length === 0) {
+            window.speechSynthesis.getVoices(); // 強迫載入
+            loadVoices();
+        }
     }
 
     function loadVoices() {
@@ -97,26 +98,23 @@
         if (voices.length === 0) return;
         
         voiceSelect.innerHTML = '';
-        // 僅篩選出這 5 個核心名字
-        const filtered = voices.filter(v => coreNames.some(name => v.name.includes(name)));
+        // 篩選核心美音
+        const filtered = voices.filter(v => coreNames.some(n => v.name.includes(n)));
         
-        filtered.forEach((v, i) => {
+        filtered.forEach((v) => {
             const opt = document.createElement('option');
-            opt.value = voices.indexOf(v);
+            opt.value = v.name;
             const isMale = v.name.includes('Alex') || v.name.includes('Daniel') || v.name.includes('Fred');
             opt.textContent = `${v.name} ${isMale ? '♂️' : '♀️'}`;
             if (v.name === 'Alex') opt.selected = true;
             voiceSelect.appendChild(opt);
         });
-
-        if (voiceSelect.options.length === 0) {
-            const opt = document.createElement('option');
-            opt.textContent = "使用系統預設聲音";
-            voiceSelect.appendChild(opt);
-        }
     }
 
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    // iOS 異步監聽
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
 
     function getDates() {
         let list = []; let d = new Date(2026, 2, 17);
@@ -135,8 +133,8 @@
         for(let i=0; i<examDates.length; i++) {
             let div = document.createElement('div');
             div.className = 'menu-item';
-            div.innerHTML = `<b>${examDates[i]} 階段範圍</b><br><small>進度：${i*15+1} - ${Math.min((i+1)*15, allWords.length)}</small>`;
-            div.onclick = () => showMode(i);
+            div.innerHTML = `<b>${examDates[i]} 階段範圍</b><br><small>單字：${i*15+1} - ${Math.min((i+1)*15, allWords.length)}</small>`;
+            div.onclick = (e) => { e.stopPropagation(); showMode(i); };
             container.appendChild(div);
         }
     }
@@ -145,9 +143,9 @@
         document.getElementById('menu-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'block';
         document.getElementById('mode-selector').innerHTML = `
-            <button class="nav-btn" onclick="start('learn', ${i})">學習模式</button>
-            <button class="nav-btn" onclick="start('recite', ${i})">背誦模式</button>
-            <button class="nav-btn" style="background:#e67e22;" onclick="start('exam', ${i})">考試模式</button>
+            <button class="nav-btn" onclick="start('learn', ${i})">學習</button>
+            <button class="nav-btn" onclick="start('recite', ${i})">背誦</button>
+            <button class="nav-btn" style="background:#e67e22;" onclick="start('exam', ${i})">考試</button>
         `;
     }
 
@@ -160,7 +158,7 @@
     }
 
     function updateUI() {
-        window.speechSynthesis.cancel();
+        window.speechSynthesis.cancel(); // 物理清空舊排程
         document.getElementById('q-en').innerText = batch[idx].en;
         document.getElementById('q-zh').innerText = batch[idx].zh;
         if (currentMode === 'exam' || currentMode === 'recite') {
@@ -182,10 +180,13 @@
     function prev() { idx = (idx-1+batch.length)%batch.length; updateUI(); }
     
     function speak() { 
-        window.speechSynthesis.cancel();
+        window.speechSynthesis.cancel(); // 確保立即停止前一個聲音
         const msg = new SpeechSynthesisUtterance(batch[idx].en);
-        const selectedVoice = voices[voiceSelect.value];
+        
+        // 依照選單名字搜尋聲音物件
+        const selectedVoice = voices.find(v => v.name === voiceSelect.value);
         if (selectedVoice) msg.voice = selectedVoice;
+        
         msg.rate = document.getElementById('rate-range').value;
         window.speechSynthesis.speak(msg); 
     }
