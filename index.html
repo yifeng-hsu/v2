@@ -3,56 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>醫用英語 - 增強音質與UI優化版</title>
+    <title>醫用英語 - 雲端發音統一版</title>
     <style>
         :root { --primary: #3498db; --bg: #2c3e50; --accent: #2ecc71; }
-        /* 加上 box-sizing 解決所有破圖與超出邊界的問題 */
         * { box-sizing: border-box; }
-        
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; touch-action: manipulation; }
         .container { width: 100%; max-width: 500px; }
         
-        .settings-panel { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); width: 100%; }
-        
-        /* 重新設計下拉選單，解決 iOS 破圖 */
-        select { 
-            width: 100%; margin: 10px 0 20px 0; padding: 12px 15px; border-radius: 10px; font-size: 16px; 
-            background: #ecf0f1; color: #2c3e50; border: none; outline: none;
-            -webkit-appearance: none; appearance: none; 
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 15px center; background-size: 15px;
-        }
-        
-        /* 重新設計拉桿，確保各版本 iOS 顯示正常 */
-        input[type="range"] { width: 100%; margin: 15px 0; -webkit-appearance: none; background: transparent; }
+        .settings-panel { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); width: 100%; text-align: center; }
+        input[type="range"] { width: 100%; margin: 15px 0 5px 0; -webkit-appearance: none; background: transparent; }
         input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: #7f8c8d; border-radius: 5px; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 26px; width: 26px; border-radius: 50%; background: var(--accent); margin-top: -9px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-        
-        label { font-size: 0.95em; color: #bdc3c7; font-weight: bold; display: block; }
+        label { font-size: 1em; color: #bdc3c7; font-weight: bold; }
         
         .menu-item { background: white; color: #2c3e50; padding: 18px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; border-left: 6px solid var(--primary); font-size: 1.1em; }
         #app-screen { display: none; width: 100%; }
         
         .card { background: white; color: #2c3e50; height: 260px; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; }
-        .word-en { font-size: 1.8em; font-weight: bold; margin-bottom: 10px; }
+        .word-en { font-size: 1.8em; font-weight: bold; margin-bottom: 10px; min-height: 2.2em; display: flex; align-items: center; }
         .hidden { display: none !important; }
         
-        .btn-speak { background: var(--accent); font-size: 2.2em; width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin: 15px 0; padding: 0; display: flex; justify-content: center; align-items: center; }
-        .nav-btn { background: #7f8c8d; padding: 15px; border-radius: 10px; color: white; border: none; font-weight: bold; flex: 1; text-align: center; font-size: 1em; }
-        .btn-back { background: #e74c3c; width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 10px; color: white; border: none; font-size: 1.1em; font-weight: bold; }
+        .btn-speak { background: var(--accent); font-size: 2.2em; width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin: 15px 0; padding: 0; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .nav-btn { background: #7f8c8d; padding: 15px; border-radius: 10px; color: white; border: none; font-weight: bold; flex: 1; text-align: center; font-size: 1em; cursor: pointer; }
+        .btn-back { background: #e74c3c; width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 10px; color: white; border: none; font-size: 1.1em; font-weight: bold; cursor: pointer; }
     </style>
 </head>
-<body onpointerdown="initAudioContext()">
+<body>
 
 <div class="container" id="menu-screen">
     <h1 style="text-align: center; margin-bottom: 15px;">🚑 醫用單字排程</h1>
     
     <div class="settings-panel">
-        <label>🎤 選擇發音 (優先載入增強版):</label>
-        <select id="voice-select" onchange="window.speechSynthesis.cancel()"></select>
-        
-        <label>⚡ 語速調整: <span id="rate-val">0.9</span>x</label>
-        <input type="range" id="rate-range" min="0.3" max="1.5" step="0.1" value="0.9" oninput="document.getElementById('rate-val').innerText=this.value">
+        <label>☁️ 雲端美式發音 (全裝置統一)</label>
+        <div style="margin-top: 20px;">
+            <label>⚡ 語速調整: <span id="rate-val">0.9</span>x</label>
+            <input type="range" id="rate-range" min="0.5" max="1.5" step="0.1" value="0.9" oninput="document.getElementById('rate-val').innerText=this.value">
+        </div>
     </div>
 
     <div id="menu-items"></div>
@@ -68,9 +54,9 @@
     </div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:15px; margin-top:10px;">
-        <button class="nav-btn" onclick="prev()">◀</button>
+        <button class="nav-btn" onclick="prev()">◀ 上一題</button>
         <button class="btn-speak" onclick="speak()">🔊</button>
-        <button class="nav-btn" onclick="next()">▶</button>
+        <button class="nav-btn" onclick="next()">下一題 ▶</button>
     </div>
     <button class="nav-btn" style="background:#9b59b6; width:100%; margin-top:15px;" onclick="reveal()">👁️ 查看答案</button>
     <p id="progress" style="text-align:center; margin-top:20px; color:#bdc3c7; font-weight:bold;"></p>
@@ -101,51 +87,7 @@
         {en:"Urolithiasis",zh:"尿路結石"},{en:"Urticaria",zh:"蕁麻疹"},{en:"Vaginal Bleeding",zh:"陰道出血"},{en:"Vaginitis",zh:"陰道炎"},{en:"Varicose Vein",zh:"靜脈曲張"},{en:"Vf",zh:"心室顫動"},{en:"VF",zh:"心室撲動"},{en:"VT",zh:"心室心搏過速"},{en:"Vertigo",zh:"眩暈"},{en:"Viral Infection",zh:"病毒感染"},{en:"Vomiting",zh:"嘔吐"},{en:"Wrist sprain",zh:"腕部扭傷"},{en:"Zygomatic Fracture",zh:"顴骨骨折"}
     ];
 
-    let voices = [];
-    const voiceSelect = document.getElementById('voice-select');
-    // 加入 Tom，涵蓋最優質的 iOS 美語發音人
-    const coreNames = ["Alex", "Tom", "Samantha", "Fred", "Victoria", "Daniel"];
-
-    function initAudioContext() {
-        if (voices.length === 0) {
-            window.speechSynthesis.getVoices();
-            loadVoices();
-        }
-    }
-
-    function loadVoices() {
-        voices = window.speechSynthesis.getVoices();
-        if (voices.length === 0) return;
-        
-        voiceSelect.innerHTML = '';
-        
-        // 篩選出核心名單
-        const filtered = voices.filter(v => coreNames.some(n => v.name.includes(n)));
-        
-        // 排序：將含有 "Enhanced" 或 "Premium" 或 "Alex" 排在最前面
-        filtered.sort((a, b) => {
-            const aEnh = a.name.includes('Enhanced') || a.name.includes('Premium') || a.name === 'Alex';
-            const bEnh = b.name.includes('Enhanced') || b.name.includes('Premium') || b.name === 'Alex';
-            return (aEnh === bEnh) ? 0 : aEnh ? -1 : 1;
-        });
-        
-        filtered.forEach((v) => {
-            const opt = document.createElement('option');
-            opt.value = v.name;
-            const isMale = v.name.includes('Alex') || v.name.includes('Daniel') || v.name.includes('Fred') || v.name.includes('Tom');
-            const isEnhanced = v.name.includes('Enhanced') || v.name.includes('Premium') || v.name === 'Alex';
-            
-            opt.textContent = `${v.name} ${isMale ? '♂️' : '♀️'} ${isEnhanced ? '⭐' : ''}`;
-            
-            // 預設選擇 Alex 或首個增強版
-            if (v.name === 'Alex' || v.name.includes('Tom (Enhanced)')) opt.selected = true;
-            voiceSelect.appendChild(opt);
-        });
-    }
-
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = loadVoices;
-    }
+    let currentAudio = null;
 
     function getDates() {
         let list = []; let d = new Date(2026, 2, 17);
@@ -165,7 +107,7 @@
             let div = document.createElement('div');
             div.className = 'menu-item';
             div.innerHTML = `<b>${examDates[i]} 階段範圍</b><br><small>單字：${i*15+1} - ${Math.min((i+1)*15, allWords.length)}</small>`;
-            div.onclick = (e) => { e.stopPropagation(); showMode(i); };
+            div.onclick = () => showMode(i);
             container.appendChild(div);
         }
     }
@@ -185,13 +127,15 @@
         let endIdx = Math.min((i + 1) * 15, allWords.length);
         batch = (mode === 'exam') ? allWords.slice(0, endIdx).sort(() => Math.random() - 0.5) : allWords.slice(i * 15, endIdx);
         idx = 0; updateUI();
-        if (mode === 'exam') setTimeout(speak, 500);
+        if (mode === 'exam') setTimeout(speak, 300);
     }
 
     function updateUI() {
-        window.speechSynthesis.cancel();
+        if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+        
         document.getElementById('q-en').innerText = batch[idx].en;
         document.getElementById('q-zh').innerText = batch[idx].zh;
+        
         if (currentMode === 'exam' || currentMode === 'recite') {
             document.getElementById('q-en').classList.add('hidden');
             document.getElementById('q-zh').classList.add('hidden');
@@ -207,16 +151,22 @@
         document.getElementById('q-zh').classList.remove('hidden');
     }
 
-    function next() { idx = (idx+1)%batch.length; updateUI(); if(currentMode === 'exam') setTimeout(speak, 150); }
+    function next() { idx = (idx+1)%batch.length; updateUI(); if(currentMode === 'exam') setTimeout(speak, 100); }
     function prev() { idx = (idx-1+batch.length)%batch.length; updateUI(); }
     
     function speak() { 
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance(batch[idx].en);
-        const selectedVoice = voices.find(v => v.name === voiceSelect.value);
-        if (selectedVoice) msg.voice = selectedVoice;
-        msg.rate = document.getElementById('rate-range').value;
-        window.speechSynthesis.speak(msg); 
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+        }
+        
+        // 使用有道公開字典 API 取得美式發音 (type=2 代表美音)
+        const word = encodeURIComponent(batch[idx].en);
+        const url = `https://dict.youdao.com/dictvoice?audio=${word}&type=2`;
+        
+        currentAudio = new Audio(url);
+        currentAudio.playbackRate = parseFloat(document.getElementById('rate-range').value);
+        currentAudio.play().catch(e => console.log("播放被瀏覽器阻擋，請確認有互動操作", e));
     }
     
     initMenu();
