@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>醫用英語 - 四模式邏輯版</title>
+    <title>醫用英語 - 祝大家考試歐趴</title>
     <style>
         :root { --primary: #3498db; --bg: #2c3e50; --accent: #2ecc71; }
         * { box-sizing: border-box; }
@@ -24,7 +24,7 @@
         #mode-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; width: 100%; }
         
         .card { background: white; color: #2c3e50; height: 260px; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; }
-        .word-en { font-size: 1.55em; font-weight: bold; margin-bottom: 10px; min-height: 2.2em; display: flex; align-items: center; justify-content: center; word-break: break-word; line-height: 1.2; width: 100%; }
+        .word-en { font-size: 1.55em; font-weight: bold; margin-bottom: 10px; min-height: 2.2em; display: flex; align-items: center; justify-content: center; word-break: break-word; line-height: 1.2; width: 100%; flex-wrap: wrap; gap: 0.2em; }
         .hidden { display: none !important; }
         
         .btn-speak { background: var(--accent); font-size: 2.2em; width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin: 15px 0; padding: 0; display: flex; justify-content: center; align-items: center; cursor: pointer; }
@@ -38,7 +38,7 @@
     <h1 style="text-align: center; margin-bottom: 15px;">🚑 醫用單字排程</h1>
     
     <div class="settings-panel">
-        <div id="voice-status">IOS26使用者可至設定-輔助使用-閱讀與朗讀-聲音-英語-下載Tom(增強音質)-點擊設為預設</div>
+        <div id="voice-status">2026.4.3新增功能：點擊單字音節可單獨發音唷。請讀之前再對一下單字及中文是否跟Pdf檔一樣！</div>
         <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
         <label>⚡ 語速調整: <span id="rate-val">0.9</span>x</label>
         <input type="range" id="rate-range" min="0.3" max="1.5" step="0.1" value="0.9" oninput="document.getElementById('rate-val').innerText=this.value">
@@ -115,7 +115,7 @@
         {en:"Bronchopneumonia",zh:"支氣管肺炎"},
         {en:"Bronchospasm",zh:"支氣管痙攣"},
         {en:"Bundle Branch Block",zh:"束枝傳導阻滯(BBB)"},
-        {en:"Carcinoma",zh:"癌症(cancer)"},
+        {en:"Carcinoma",zh:"癌症（Cancer)"},
         {en:"Cardiac Arrest",zh:"心跳停止"},
         {en:"Cardiac Tamponade",zh:"心包膜填塞"},
         {en:"Cardiogenic Shock",zh:"心因性休克"},
@@ -472,7 +472,26 @@
 
     function updateUI() {
         window.speechSynthesis.cancel();
-        document.getElementById('q-en').innerText = batch[idx].en;
+        
+        // 新增功能：將英文單字切開，讓使用者可以單獨點擊發音
+        const qEn = document.getElementById('q-en');
+        qEn.innerHTML = '';
+        const words = batch[idx].en.split(' ');
+        words.forEach((wordText, wordIndex) => {
+            const span = document.createElement('span');
+            span.innerText = wordText;
+            span.style.cursor = 'pointer'; // 讓滑鼠移過去知道可以點
+            span.onclick = function(e) {
+                e.stopPropagation(); // 避免觸發整張卡片的翻面功能
+                speakWord(wordText);
+            };
+            qEn.appendChild(span);
+            // 補回空白字元
+            if (wordIndex < words.length - 1) {
+                qEn.appendChild(document.createTextNode(' '));
+            }
+        });
+
         document.getElementById('q-zh').innerText = batch[idx].zh;
         
         // 只要不是練習模式，一律先隱藏單字
@@ -503,9 +522,25 @@
         if(currentMode !== 'learn') setTimeout(speak, 150);
     }
     
+    // 專門用於唸整句的按鈕
     function speak() { 
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance(batch[idx].en);
+        
+        if (targetVoice) {
+            msg.voice = targetVoice;
+        } else {
+            msg.lang = 'en-US';
+        }
+        
+        msg.rate = document.getElementById('rate-range').value;
+        window.speechSynthesis.speak(msg);
+    }
+
+    // 專門用於唸單一單字的新增功能
+    function speakWord(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
         
         if (targetVoice) {
             msg.voice = targetVoice;
